@@ -101,7 +101,7 @@ class MultiAgentSearchAgent(Agent):
       is another abstract class.
     """
 
-    def __init__(self, evalFn = 'betterEvaluationFunction', depth = '3'):
+    def __init__(self, evalFn = 'adversarialEvaluationFunction', depth = '2'):
         self.index = 0 # Pacman is always agent index 0
         self.evaluationFunction = util.lookup(evalFn, globals())
         self.depth = int(depth)
@@ -129,35 +129,44 @@ class MinimaxAgent(MultiAgentSearchAgent):
             Returns the total number of agents in the game
         """
 
-        "*** YOUR CODE HERE ***"
-
         v = -sys.maxint - 1
-        bestActions = []
+        actionValue = {}
  
-        print '----------\nChoosing action\n----------'
+        #print '----------\nChoosing action'
 
         # find the largest minimax value from here
+       
         for a in gameState.getLegalActions():
-            v_a = self.minValue(gameState.generateSuccessor(self.index, a), self.depth)
+            actionValue[a] = self.minValue(gameState.generateSuccessor(self.index, a), self.depth)
 
-            print 'Action ' + str(a) + ' got value ' + str(v_a)
-
-            if v_a > v:
-                v = v_a
-                bestActions = [a]
-                print 'action ' + str(a) + ' looks like the best so far'
-
-            elif v_a == v:
-                bestActions.append(a)
-                print 'action ' + str(a) + ' looks pretty good!'
+            #print 'Action ' + str(a) + ' got value ' + str(actionValue[a])
             
-        while len(bestActions) > 1 and bestActions.count(Directions.STOP) > 0:
-            bestActions.remove(Directions.STOP)
+        # choose best action
+        valueActions = [(v, k) for k, v in actionValue.items()]
+        valueActions.sort()
+        valueActions.reverse()
+        bestValue = (valueActions[0])[0]
+        bestCount = [v for v, k in valueActions].count(bestValue)
+        actions = [k for v, k in valueActions]
+        bestActions = actions[:bestCount]
 
-        action = bestActions[random.randint(0, len(bestActions)) - 1]
-        print '***should do action ' + str(action) + '***'
+        mostBestestAction = bestActions[0]
+
+        # resolve ties
+        if bestCount > 1:
+            bestActionValue = {}
+            for a in bestActions:
+                bestActionValue[a] = rewardEvaluationFunction(gameState.generateSuccessor(self.index, a), self.depth)
+                #print 'Action ' + str(a) + ' got value ' + str(bestActionValue[a])
+            bestestActions = [(v, k) for k, v in bestActionValue.items()]
+            bestestActions.sort()
+            bestestActions.reverse()
+            mostBestestAction = (bestestActions[0])[1]
+            #print 'chose best action ' + str(mostBestestAction) + ' by reward'
+        #else:
+            #print 'chose action ' + str(mostBestestAction) + ' by adversarial cost'
         
-        return action
+        return mostBestestAction
 
 
     def maxValue(self, gameState, cutoff):
@@ -217,7 +226,8 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         "*** YOUR CODE HERE ***"
         util.raiseNotDefined()
 
-def betterEvaluationFunction(currentGameState, depth):
+# evaluation function that takes only adversaries into account; not food, etc.
+def adversarialEvaluationFunction(currentGameState, maxDistance):
     if currentGameState.isWin():
         return 1000000
 
@@ -227,27 +237,36 @@ def betterEvaluationFunction(currentGameState, depth):
     score = 0
     pmLocation = currentGameState.getPacmanPosition()
     for s in currentGameState.getGhostStates():
-        md = manhattanDistance(pmLocation, currentGameState.getPacmanPosition()) 
-        if md < depth:
-            if s.scaredTimer == 0:
-                score += depth - md
-            else:
-                score += md
-    score *= 10
-
-    if currentGameState.data._foodEaten == currentGameState.getPacmanPosition():
-        score += depth
-
-    foodProxScore = 0
-    for location in currentGameState.getFood():
-        foodProxScore += int(float(depth) / manhattanDistance(pmLocation, location))
-
-    #print 'food Proimity Score: ' + str(foodProxScore)
-
-    score += foodProxScore
+        manDist = manhattanDistance(pmLocation, s.configuration.getPosition()) 
+        #if manDist < maxDistance:
+        if s.scaredTimer == 0:
+            score += maxDistance - manDist
+        else:
+            score += manDist
 
     return score
 
-# Abbreviation
-better = betterEvaluationFunction
+def rewardEvaluationFunction(currentGameState, maxDistance):
+    score = 0
+    pmLocation = currentGameState.getPacmanPosition()
 
+
+    if currentGameState.data._foodEaten == currentGameState.getPacmanPosition():
+        score = 10
+
+    foodProx = 0
+    count = 0
+    grid = currentGameState.getFood().data
+
+    for j in range(len(grid)):
+        for i in range(len(grid[j])):
+            if (i, j) == pmLocation:
+                continue
+            if grid[j][i] == True:
+                d = manhattanDistance(pmLocation, (i, j))
+                count += 1
+                foodProx += 1. / float(d)
+
+    score += int(foodProx)
+
+    return score
