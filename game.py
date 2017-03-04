@@ -611,12 +611,21 @@ class Game:
         agentIndex = self.startingIndex
         numAgents = len( self.agents )
 
+
+        #Loop till the game is not over!!!.
         while not self.gameOver:
             # Fetch the next agent
             agent = self.agents[agentIndex]
             move_time = 0
             skip_action = False
+
+
+
             # Generate an observation of the state
+
+
+
+
             if 'observationFunction' in dir( agent ):
                 self.mute(agentIndex)
                 if self.catchExceptions:
@@ -638,12 +647,17 @@ class Game:
                 self.unmute()
             else:
                 observation = self.state.deepCopy()
-
+                ##print observation
             # Solicit an action
             action = None
             self.mute(agentIndex)
+
+
+
+
             if self.catchExceptions:
                 try:
+                    #####Getting an Action
                     timed_func = TimeoutFunction(agent.getAction, int(self.rules.getMoveTimeout(agentIndex)) - int(move_time))
                     try:
                         start_time = time.time()
@@ -688,6 +702,10 @@ class Game:
 
             # Execute the action
             self.moveHistory.append( (agentIndex, action) )
+
+
+
+
             if self.catchExceptions:
                 try:
                     self.state = self.state.generateSuccessor( agentIndex, action )
@@ -700,19 +718,41 @@ class Game:
                 self.state = self.state.generateSuccessor( agentIndex, action )
 
             # Change the display
+
+
+
+
+
+
+
+
             self.display.update( self.state.data )
+
+
             ###idx = agentIndex - agentIndex % 2 + 1
             ###self.display.update( self.state.makeObservation(idx).data )
 
             # Allow for game specific conditions (winning, losing, etc.)
+
+
+
             self.rules.process(self.state, self)
+
+
             # Track progress
+
+
+
             if agentIndex == numAgents + 1: self.numMoves += 1
             # Next agent
             agentIndex = ( agentIndex + 1 ) % numAgents
 
             if _BOINC_ENABLED:
                 boinc.set_fraction_done(self.getProgress())
+
+
+
+
 
         # inform a learning agent of the game result
         for agentIndex, agent in enumerate(self.agents):

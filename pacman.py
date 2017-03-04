@@ -86,11 +86,15 @@ class GameState:
 #        GameState.explored.add(self)
         if self.isWin() or self.isLose(): return []
 
+        # This is for pacman getting legal actions.
         if agentIndex == 0:  # Pacman is moving
             return PacmanRules.getLegalActions( self )
         else:
             return GhostRules.getLegalActions( self, agentIndex )
 
+
+    # This function is important, this is the transition function.
+    # Given the agent and action what's it successor.
     def generateSuccessor( self, agentIndex, action):
         """
         Returns the successor state after the specified agent takes the action.
@@ -98,8 +102,15 @@ class GameState:
         # Check that successors exist
         if self.isWin() or self.isLose(): raise Exception('Can\'t generate a successor of a terminal state.')
 
-        # Copy current state
+
+
+        # Copy current state of the Agent.
+        # self contains the current GameState
+
         state = GameState(self)
+
+
+
 
         # Let agent's logic deal with its action's effects on the board
         if agentIndex == 0:  # Pacman is moving
@@ -127,11 +138,19 @@ class GameState:
     def getLegalPacmanActions( self ):
         return self.getLegalActions( 0 )
 
+
+
+    # This is the function which is called by multiAgents.py for calculating Score.
+    #
     def generatePacmanSuccessor( self, action ):
         """
         Generates the successor state after the specified pacman move
         """
         return self.generateSuccessor( 0, action )
+
+    def generateGhostSuccessor(self,action, agentIndex):
+
+        return self.generateSuccessor(agentIndex,action)
 
     def getPacmanState( self ):
         """
@@ -259,7 +278,7 @@ class GameState:
 # You shouldn't need to look through the code in this section of the file. #
 ############################################################################
 
-SCARED_TIME = 40    # Moves ghosts are scared
+SCARED_TIME = 40    # Moves ghosts are scared  This is the ghost scared.
 COLLISION_TOLERANCE = 0.7 # How close ghosts must be to Pacman to kill
 TIME_PENALTY = 1 # Number of points lost each round
 
@@ -271,6 +290,10 @@ class ClassicGameRules:
     def __init__(self, timeout=30):
         self.timeout = timeout
 
+
+
+
+
     def newGame( self, layout, pacmanAgent, ghostAgents, display, quiet = False, catchExceptions=False):
         agents = [pacmanAgent] + ghostAgents[:layout.getNumGhosts()]
         initState = GameState()
@@ -281,6 +304,9 @@ class ClassicGameRules:
         self.quiet = quiet
         return game
 
+
+
+
     def process(self, state, game):
         """
         Checks to see whether it is time to end the game.
@@ -288,22 +314,35 @@ class ClassicGameRules:
         if state.isWin(): self.win(state, game)
         if state.isLose(): self.lose(state, game)
 
+
+
     def win( self, state, game ):
         if not self.quiet: print "Pacman emerges victorious! Score: %d" % state.data.score
         game.gameOver = True
+
+
+
 
     def lose( self, state, game ):
         if not self.quiet: print "Pacman died! Score: %d" % state.data.score
         game.gameOver = True
 
+
+
+
     def getProgress(self, game):
         return float(game.state.getNumFood()) / self.initialState.getNumFood()
+
+
+
 
     def agentCrash(self, game, agentIndex):
         if agentIndex == 0:
             print "Pacman crashed"
         else:
             print "A ghost crashed"
+
+
 
     def getMaxTotalTime(self, agentIndex):
         return self.timeout
@@ -320,6 +359,11 @@ class ClassicGameRules:
     def getMaxTimeWarnings(self, agentIndex):
         return 0
 
+
+# The increment of the score is mentioned in this class
+# Rule 1 : when the pacman eats food then it score changes by 10
+# Rule 2 : when it has no food and won the match then score changes by 500
+# Rule 3 : Don't get any score when pac-man eats capsule.  it set the SCARED_TIMER.
 class PacmanRules:
     """
     These functions govern how pacman interacts with his environment under
@@ -358,7 +402,7 @@ class PacmanRules:
 
     def consume( position, state ):
         x,y = position
-        # Eat food
+        # If the pac-man is eating food.
         if state.data.food[x][y]:
             state.data.scoreChange += 10
             state.data.food = state.data.food.copy()
@@ -366,10 +410,15 @@ class PacmanRules:
             state.data._foodEaten = position
             # TODO: cache numFood?
             numFood = state.getNumFood()
+            #This is when the food is over and the pacman wins the game, the score increments by 500.
+
             if numFood == 0 and not state.data._lose:
                 state.data.scoreChange += 500
                 state.data._win = True
-        # Eat capsule
+
+
+
+        # If the pac-man is eating capulse.
         if( position in state.getCapsules() ):
             state.data.capsules.remove( position )
             state.data._capsuleEaten = position
@@ -474,6 +523,12 @@ def parseAgentArgs(str):
     return opts
 
 def readCommand( argv ):
+
+
+
+
+
+
     """
     Processes the command used to run pacman from the command line.
     """
@@ -486,45 +541,70 @@ def readCommand( argv ):
                 OR  python pacman.py -l smallClassic -z 2
                     - starts an interactive game on a smaller board, zoomed in
     """
+
+
+
+
+
+    ### This is a special object for parsing the command line arguments.
+
     parser = OptionParser(usageStr)
+
 
     parser.add_option('-n', '--numGames', dest='numGames', type='int',
                       help=default('the number of GAMES to play'), metavar='GAMES', default=1)
+
     parser.add_option('-l', '--layout', dest='layout',
                       help=default('the LAYOUT_FILE from which to load the map layout'),
                       metavar='LAYOUT_FILE', default='mediumClassic')
+
     parser.add_option('-p', '--pacman', dest='pacman',
                       help=default('the agent TYPE in the pacmanAgents module to use'),
                       metavar='TYPE', default='KeyboardAgent')
+
     parser.add_option('-t', '--textGraphics', action='store_true', dest='textGraphics',
                       help='Display output as text only', default=False)
+
     parser.add_option('-q', '--quietTextGraphics', action='store_true', dest='quietGraphics',
                       help='Generate minimal output and no graphics', default=False)
+
     parser.add_option('-g', '--ghosts', dest='ghost',
                       help=default('the ghost agent TYPE in the ghostAgents module to use'),
                       metavar = 'TYPE', default='RandomGhost')
+
     parser.add_option('-k', '--numghosts', type='int', dest='numGhosts',
                       help=default('The maximum number of ghosts to use'), default=4)
+
     parser.add_option('-z', '--zoom', type='float', dest='zoom',
                       help=default('Zoom the size of the graphics window'), default=1.0)
+
     parser.add_option('-f', '--fixRandomSeed', action='store_true', dest='fixRandomSeed',
                       help='Fixes the random seed to always play the same game', default=False)
+
     parser.add_option('-r', '--recordActions', action='store_true', dest='record',
                       help='Writes game histories to a file (named by the time they were played)', default=False)
+
     parser.add_option('--replay', dest='gameToReplay',
                       help='A recorded game file (pickle) to replay', default=None)
+
     parser.add_option('-a','--agentArgs',dest='agentArgs',
                       help='Comma separated values sent to agent. e.g. "opt1=val1,opt2,opt3=val3"')
+
     parser.add_option('-x', '--numTraining', dest='numTraining', type='int',
                       help=default('How many episodes are training (suppresses output)'), default=0)
+
     parser.add_option('--frameTime', dest='frameTime', type='float',
                       help=default('Time to delay between frames; <0 means keyboard'), default=0.1)
+
     parser.add_option('-c', '--catchExceptions', action='store_true', dest='catchExceptions',
                       help='Turns on exception handling and timeouts during games', default=False)
+
     parser.add_option('--timeout', dest='timeout', type='int',
                       help=default('Maximum length of time an agent can spend computing in a single game'), default=30)
 
     options, otherjunk = parser.parse_args(argv)
+
+
     if len(otherjunk) != 0:
         raise Exception('Command line input not understood: ' + str(otherjunk))
     args = dict()
@@ -532,28 +612,57 @@ def readCommand( argv ):
     # Fix the random seed
     if options.fixRandomSeed: random.seed('cs188')
 
-    # Choose a layout
+
+
+
+
+
+
+
+
+    # Chossing a particular layout
     args['layout'] = layout.getLayout( options.layout )
     if args['layout'] == None: raise Exception("The layout " + options.layout + " cannot be found")
 
     # Choose a Pacman agent
     noKeyboard = options.gameToReplay == None and (options.textGraphics or options.quietGraphics)
+    #print noKeyboard
     pacmanType = loadAgent(options.pacman, noKeyboard)
+
     agentOpts = parseAgentArgs(options.agentArgs)
+
     if options.numTraining > 0:
         args['numTraining'] = options.numTraining
         if 'numTraining' not in agentOpts: agentOpts['numTraining'] = options.numTraining
     pacman = pacmanType(**agentOpts) # Instantiate Pacman with agentArgs
     args['pacman'] = pacman
 
+
+
+
+
+
+
+
+
     # Don't display training games
     if 'numTrain' in agentOpts:
         options.numQuiet = int(agentOpts['numTrain'])
         options.numIgnore = int(agentOpts['numTrain'])
 
+
+
+
+
+
     # Choose a ghost agent
     ghostType = loadAgent(options.ghost, noKeyboard)
     args['ghosts'] = [ghostType( i+1 ) for i in range( options.numGhosts )]
+
+
+
+
+
 
     # Choose a display format
     if options.quietGraphics:
@@ -571,6 +680,14 @@ def readCommand( argv ):
     args['catchExceptions'] = options.catchExceptions
     args['timeout'] = options.timeout
 
+
+
+
+
+
+
+
+
     # Special case: recorded games don't use the runGames method or args structure
     if options.gameToReplay != None:
         print 'Replaying recorded game %s.' % options.gameToReplay
@@ -584,9 +701,20 @@ def readCommand( argv ):
 
     return args
 
+
+
+
+
+
+
+
+
+
 def loadAgent(pacman, nographics):
     # Looks through all pythonPath Directories for the right module,
     pythonPathStr = os.path.expandvars("$PYTHONPATH")
+    print 'hi'
+    print pythonPathStr
     if pythonPathStr.find(';') == -1:
         pythonPathDirs = pythonPathStr.split(':')
     else:
@@ -631,6 +759,7 @@ def runGames( layout, pacman, ghosts, display, numGames, record, numTraining = 0
 
     rules = ClassicGameRules(timeout)
     games = []
+    #numGames=2
 
     for i in range( numGames ):
         beQuiet = i < numTraining
@@ -644,6 +773,7 @@ def runGames( layout, pacman, ghosts, display, numGames, record, numTraining = 0
             rules.quiet = False
         game = rules.newGame( layout, pacman, ghosts, gameDisplay, beQuiet, catchExceptions)
         game.run()
+
         if not beQuiet: games.append(game)
 
         if record:
@@ -676,7 +806,9 @@ if __name__ == '__main__':
 
     > python pacman.py --help
     """
-    args = readCommand( sys.argv[1:] ) # Get game components based on input
+    args = readCommand( sys.argv[1:] )# Get game components based on input
+    print args
+    print type(args)
     runGames( **args )
 
     # import cProfile

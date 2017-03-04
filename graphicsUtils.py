@@ -72,10 +72,6 @@ def begin_graphics(width=640, height=480, color=formatColor(0, 0, 0), title=None
     _root_window.protocol('WM_DELETE_WINDOW', _destroy_window)
     _root_window.title(title or 'Graphics Window')
     _root_window.resizable(0, 0)
-    
-    winX = _root_window.winfo_screenwidth() - width
-    g = str(int(width)) + 'x' + str(int(height)) + '+' + str(int(winX)) + '+0'
-    _root_window.geometry(g)
 
     # Create the canvas object
     try:
