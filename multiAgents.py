@@ -14,7 +14,7 @@
 
 from util import manhattanDistance
 from game import Directions
-import random, util
+import random, util, sys
 
 from game import Agent
 
@@ -101,7 +101,7 @@ class MultiAgentSearchAgent(Agent):
       is another abstract class.
     """
 
-    def __init__(self, evalFn = 'scoreEvaluationFunction', depth = '2'):
+    def __init__(self, evalFn = 'betterEvaluationFunction', depth = '3'):
         self.index = 0 # Pacman is always agent index 0
         self.evaluationFunction = util.lookup(evalFn, globals())
         self.depth = int(depth)
@@ -128,8 +128,67 @@ class MinimaxAgent(MultiAgentSearchAgent):
           gameState.getNumAgents():
             Returns the total number of agents in the game
         """
+
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+
+        v = -sys.maxint - 1
+        bestActions = []
+ 
+        print '----------\nChoosing action\n----------'
+
+        # find the largest minimax value from here
+        for a in gameState.getLegalActions():
+            v_a = self.minValue(gameState.generateSuccessor(self.index, a), self.depth)
+
+            print 'Action ' + str(a) + ' got value ' + str(v_a)
+
+            if v_a > v:
+                v = v_a
+                bestActions = [a]
+                print 'action ' + str(a) + ' looks like the best so far'
+
+            elif v_a == v:
+                bestActions.append(a)
+                print 'action ' + str(a) + ' looks pretty good!'
+            
+        while len(bestActions) > 1 and bestActions.count(Directions.STOP) > 0:
+            bestActions.remove(Directions.STOP)
+
+        action = bestActions[random.randint(0, len(bestActions)) - 1]
+        print '***should do action ' + str(action) + '***'
+        
+        return action
+
+
+    def maxValue(self, gameState, cutoff):
+        # value of terminal state is given by evaluation fn
+        if cutoff == 0 or gameState.isWin() or gameState.isLose():
+            return self.evaluationFunction(gameState, 20)
+        
+        v = -sys.maxint - 1
+        # find the max value we can get from here
+        for a in gameState.getLegalActions(self.index):
+            v = max(v, self.minValue(gameState.generateSuccessor(self.index, a), cutoff - 1))
+
+        #print 'maxValue returning ' + str(v)
+
+        return v
+
+
+    def minValue(self, gameState, cutoff):
+        # value of terminal state is given by evaluation fn
+        if cutoff == 0 or gameState.isWin() or gameState.isLose():
+            return self.evaluationFunction(gameState, 20)
+        
+        v = sys.maxint
+        # find the min value we can get from here
+        for a in gameState.getLegalActions(self.index):
+            v = min(v, self.maxValue(gameState.generateSuccessor(self.index, a), cutoff - 1))
+
+        #print 'minValue returning ' + str(v)
+
+        return v
+        
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
@@ -158,15 +217,36 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         "*** YOUR CODE HERE ***"
         util.raiseNotDefined()
 
-def betterEvaluationFunction(currentGameState):
-    """
-      Your extreme ghost-hunting, pellet-nabbing, food-gobbling, unstoppable
-      evaluation function (question 5).
+def betterEvaluationFunction(currentGameState, depth):
+    if currentGameState.isWin():
+        return 1000000
 
-      DESCRIPTION: <write something here so we know what you did>
-    """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    if currentGameState.isLose():
+        return -1000000
+
+    score = 0
+    pmLocation = currentGameState.getPacmanPosition()
+    for s in currentGameState.getGhostStates():
+        md = manhattanDistance(pmLocation, currentGameState.getPacmanPosition()) 
+        if md < depth:
+            if s.scaredTimer == 0:
+                score += depth - md
+            else:
+                score += md
+    score *= 10
+
+    if currentGameState.data._foodEaten == currentGameState.getPacmanPosition():
+        score += depth
+
+    foodProxScore = 0
+    for location in currentGameState.getFood():
+        foodProxScore += int(float(depth) / manhattanDistance(pmLocation, location))
+
+    #print 'food Proimity Score: ' + str(foodProxScore)
+
+    score += foodProxScore
+
+    return score
 
 # Abbreviation
 better = betterEvaluationFunction
