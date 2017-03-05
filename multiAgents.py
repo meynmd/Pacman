@@ -97,10 +97,15 @@ class MultiAgentSearchAgent(Agent):
         self.evaluationFunction = util.lookup(evalFn, globals())
         self.depth = int(depth)
 
-class MinimaxAgent(MultiAgentSearchAgent):
+
+class MinimaxSearchAgent(MultiAgentSearchAgent):
     """
       minimax agent
     """
+
+    def __init__(self, isAlphaBeta):
+        self.alphaBeta = isAlphaBeta
+        MultiAgentSearchAgent.__init__(self)
 
     def getAction(self, gameState):
         return self.minimaxDecision(gameState)
@@ -169,9 +174,14 @@ class MinimaxAgent(MultiAgentSearchAgent):
         return v
         
 
+class MinimaxAgent(MinimaxSearchAgent):
+    def __init__(self):
+        MinimaxSearchAgent.__init__(self, False)
+
+
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
-      Your minimax agent with alpha-beta pruning (question 3)
+      minimax agent with alpha-beta pruning
     """
 
     def getAction(self, gameState):
@@ -218,19 +228,18 @@ def adversarialEvaluationFunction(currentGameState, maxDistance):
             continue
 
         s = currentGameState.data.agentStates[i]
-        manDist = float(manhattanDistance(pmLocation, s.configuration.getPosition()))
-        #if manDist < maxDistance:
+        p = s.configuration.getPosition()
+        manDist = float(manhattanDistance(pmLocation, p))
+        
         if s.scaredTimer > 0:
             eatScore += s.scaredTimer - manDist
         else:
-            runScore += int(10*math.log(manDist, maxDist))
+            runScore += math.log(manDist/maxDist, maxDist)
 
     if eatScore == 0:
         eatScore = 1
 
-    #print 'eatScore = ' + str(eatScore)
-
-    score = runScore * eatScore
+    score = int(runScore) * eatScore
     #print 'adversarial score: ' + str(score)
 
     return score
@@ -256,6 +265,10 @@ def rewardEvaluationFunction(currentGameState, maxDistance):
                 count += 1
                 foodProx += 1. / float(d)
 
+    foodProx = 100. * foodProx / currentGameState.getNumFood()
+
+    #print 'foodProx: ' + str(foodProx)
+
     score += int(foodProx)
 
     return score
@@ -269,3 +282,4 @@ def scoreEvaluationFunction(currentGameState):
       (not reflex agents).
     """
     return currentGameState.getScore()
+
