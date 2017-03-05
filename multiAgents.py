@@ -223,10 +223,12 @@ def adversarialEvaluationFunction(currentGameState, maxDistance):
         if s.scaredTimer > 0:
             eatScore += s.scaredTimer - manDist
         else:
-            runScore += int(math.log(manDist, maxDist))
+            runScore += int(10*math.log(manDist, maxDist))
 
     if eatScore == 0:
         eatScore = 1
+
+    #print 'eatScore = ' + str(eatScore)
 
     score = runScore * eatScore
     #print 'adversarial score: ' + str(score)
