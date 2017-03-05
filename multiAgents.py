@@ -207,13 +207,15 @@ def adversarialEvaluationFunction(currentGameState, maxDistance):
 
     score = 0
     pmLocation = currentGameState.getPacmanPosition()
+    maxDist = float(maxDistance)
     for s in currentGameState.getGhostStates():
-        manDist = manhattanDistance(pmLocation, s.configuration.getPosition()) 
+        manDist = float(manhattanDistance(pmLocation, s.configuration.getPosition()))
         #if manDist < maxDistance:
         if s.scaredTimer > 0:
-            score += maxDistance - manDist
+            score += s.scaredTimer - manDist
+            print 'score: ' + str(int(math.log(1./manDist, maxDist)))
         else:
-            score += int(math.log(manDist, maxDistance))
+            score += int(math.log(manDist, maxDist))
 
     #print 'adversarial score: ' + str(score)
 
@@ -223,7 +225,6 @@ def adversarialEvaluationFunction(currentGameState, maxDistance):
 def rewardEvaluationFunction(currentGameState, maxDistance):
     score = 0
     pmLocation = currentGameState.getPacmanPosition()
-
 
     if currentGameState.data._foodEaten == currentGameState.getPacmanPosition():
         score = 10
