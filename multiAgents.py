@@ -14,7 +14,7 @@
 
 from util import manhattanDistance
 from game import Directions
-import random, util, sys
+import random, util, sys, math
 
 from game import Agent
 
@@ -76,15 +76,6 @@ class ReflexAgent(Agent):
         "*** YOUR CODE HERE ***"
         return successorGameState.getScore()
 
-def scoreEvaluationFunction(currentGameState):
-    """
-      This default evaluation function just returns the score of the state.
-      The score is the same one displayed in the Pacman GUI.
-
-      This evaluation function is meant for use with adversarial search agents
-      (not reflex agents).
-    """
-    return currentGameState.getScore()
 
 class MultiAgentSearchAgent(Agent):
     """
@@ -108,71 +99,50 @@ class MultiAgentSearchAgent(Agent):
 
 class MinimaxAgent(MultiAgentSearchAgent):
     """
-      Your minimax agent (question 2)
+      minimax agent
     """
 
     def getAction(self, gameState):
-        """
-          Returns the minimax action from the current gameState using self.depth
-          and self.evaluationFunction.
+        return self.minimaxDecision(gameState)
 
-          Here are some method calls that might be useful when implementing minimax.
 
-          gameState.getLegalActions(agentIndex):
-            Returns a list of legal actions for an agent
-            agentIndex=0 means Pacman, ghosts are >= 1
+    def minimaxDecision(self, gameState):
+        legalActions = gameState.getLegalActions()
 
-          gameState.generateSuccessor(agentIndex, action):
-            Returns the successor game state after an agent takes an action
+        minValues = []
+        for a in legalActions:
+            minValues.append(self.minValue(gameState.generateSuccessor(self.index, a), self.depth))
+            print 'minimax value of ' + str(a) + ' is ' + str(minValues[-1])
 
-          gameState.getNumAgents():
-            Returns the total number of agents in the game
-        """
-
-        v = -sys.maxint - 1
-        actionValue = {}
- 
-        #print '----------\nChoosing action'
-
-        # find the largest minimax value from here
-       
-        for a in gameState.getLegalActions():
-            actionValue[a] = self.minValue(gameState.generateSuccessor(self.index, a), self.depth)
-
-            #print 'Action ' + str(a) + ' got value ' + str(actionValue[a])
-            
-        # choose best action
-        valueActions = [(v, k) for k, v in actionValue.items()]
-        valueActions.sort()
-        valueActions.reverse()
-        bestValue = (valueActions[0])[0]
-        bestCount = [v for v, k in valueActions].count(bestValue)
-        actions = [k for v, k in valueActions]
-        bestActions = actions[:bestCount]
-
-        mostBestestAction = bestActions[0]
+        # minimax value is max of min-values
+        maxValue = max(minValues)
+        maxIdxs = [i for i in range(len(minValues)) if minValues[i] == maxValue]
 
         # resolve ties
-        if bestCount > 1:
-            bestActionValue = {}
+        if len(maxIdxs) > 1:
+            print 'resolving tie'
+            bestActions = [legalActions[i] for i in maxIdxs]
+            rewards = []
             for a in bestActions:
-                bestActionValue[a] = rewardEvaluationFunction(gameState.generateSuccessor(self.index, a), self.depth)
-                #print 'Action ' + str(a) + ' got value ' + str(bestActionValue[a])
-            bestestActions = [(v, k) for k, v in bestActionValue.items()]
-            bestestActions.sort()
-            bestestActions.reverse()
-            mostBestestAction = (bestestActions[0])[1]
-            #print 'chose best action ' + str(mostBestestAction) + ' by reward'
-        #else:
-            #print 'chose action ' + str(mostBestestAction) + ' by adversarial cost'
+                s = gameState.generateSuccessor(self.index, a)
+                rewards.append(rewardEvaluationFunction(s , 10 * self.depth))
+
+            maxReward = max(rewards)
+            rewardIdxs = [j for j in range(len(rewards)) if rewards[j] == maxReward]
+
+            if len(rewardIdxs) > 1:
+                return bestActions[random.choice(rewardIdxs)]
+            else:
+                return bestActions[rewardIdxs[0]]
         
-        return mostBestestAction
+        else:
+            return legalActions[maxIdxs[0]]
 
 
     def maxValue(self, gameState, cutoff):
         # value of terminal state is given by evaluation fn
         if cutoff == 0 or gameState.isWin() or gameState.isLose():
-            return self.evaluationFunction(gameState, 20)
+            return self.evaluationFunction(gameState, self.depth)
         
         v = -sys.maxint - 1
         # find the max value we can get from here
@@ -187,7 +157,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
     def minValue(self, gameState, cutoff):
         # value of terminal state is given by evaluation fn
         if cutoff == 0 or gameState.isWin() or gameState.isLose():
-            return self.evaluationFunction(gameState, 20)
+            return self.evaluationFunction(gameState, self.depth)
         
         v = sys.maxint
         # find the min value we can get from here
@@ -226,6 +196,7 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         "*** YOUR CODE HERE ***"
         util.raiseNotDefined()
 
+
 # evaluation function that takes only adversaries into account; not food, etc.
 def adversarialEvaluationFunction(currentGameState, maxDistance):
     if currentGameState.isWin():
@@ -239,12 +210,15 @@ def adversarialEvaluationFunction(currentGameState, maxDistance):
     for s in currentGameState.getGhostStates():
         manDist = manhattanDistance(pmLocation, s.configuration.getPosition()) 
         #if manDist < maxDistance:
-        if s.scaredTimer == 0:
+        if s.scaredTimer > 0:
             score += maxDistance - manDist
         else:
-            score += manDist
+            score += int(math.log(manDist, maxDistance))
+
+    #print 'adversarial score: ' + str(score)
 
     return score
+
 
 def rewardEvaluationFunction(currentGameState, maxDistance):
     score = 0
@@ -270,3 +244,13 @@ def rewardEvaluationFunction(currentGameState, maxDistance):
     score += int(foodProx)
 
     return score
+
+def scoreEvaluationFunction(currentGameState):
+    """
+      This default evaluation function just returns the score of the state.
+      The score is the same one displayed in the Pacman GUI.
+
+      This evaluation function is meant for use with adversarial search agents
+      (not reflex agents).
+    """
+    return currentGameState.getScore()
