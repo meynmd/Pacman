@@ -692,6 +692,12 @@ class MonteCarloAgent( Agent ):
         self.initializeTreeSearch(gameState)
         initialFood = gameState.getNumFood()
 
+        #procs = [mp.Process(target=self.tree_traversal, args=(gameState, None, decide, initialFood)) for i in range( num_iterations )]
+        #for p in procs:
+        #    p.start()
+        #for p in procs: 
+        #    p.join()
+
         # search the tree for good places to go!
         for iter in range( num_iterations ):
             #print 'Iteration Number``````````````````````````````````````````````````````````````````````````````````````````````````----->', iter
@@ -834,7 +840,7 @@ class MonteCarloAgent( Agent ):
             temp_cur_state1 = temp_cur_state
 
             for i in range( 1, numAgents ):
-                if temp_cur_state1.isLose():
+                if temp_cur_state1.isLose() or temp_cur_state.isWin():
                     lost = True
                     cur_state = temp_cur_state
                     break
